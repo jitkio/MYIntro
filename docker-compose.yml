@@ -1,0 +1,47 @@
+name: knowledge-site
+
+services:
+  siyuan:
+    image: b3log/siyuan:v3.8.6
+    restart: unless-stopped
+    command:
+      - serve
+      - --workspace=/siyuan/workspace
+      - --accessAuthCode=${SIYUAN_ACCESS_AUTH_CODE:?Set a private access code in .env before starting Docker}
+    ports:
+      - "127.0.0.1:${SIYUAN_PORT:-6806}:6806"
+    volumes:
+      - ${MYBLOG_DATA_DIR:-./.private-data}/siyuan/workspace:/siyuan/workspace
+
+  site:
+    build:
+      context: ./site
+    restart: unless-stopped
+    depends_on:
+      - siyuan
+    environment:
+      NODE_ENV: production
+      KB_HOST: 0.0.0.0
+      KB_PORT: 8796
+      KB_PROJECT_ROOT: /app
+      KB_DATA_DIR: /app
+      KB_CONTENT_DIR: /app/content
+      KB_RUNTIME_DIR: /app/runtime
+      KB_PUBLIC_DIR: /app/public
+      KB_SIYUAN_WORKSPACE_DIR: /app/siyuan/workspace
+      KB_PUBLIC_ORIGIN: ${KB_PUBLIC_ORIGIN:-http://localhost:8796}
+      KB_ADMIN_TOKEN: ${KB_ADMIN_TOKEN:-}
+      SIYUAN_BASE_URL: http://siyuan:6806
+      SIYUAN_PUBLIC_URL: ${SIYUAN_PUBLIC_URL:-}
+      SIYUAN_ACCESS_AUTH_CODE: ${SIYUAN_ACCESS_AUTH_CODE:?Set a private access code in .env before starting Docker}
+      SIYUAN_API_TOKEN: ${SIYUAN_API_TOKEN:-}
+      SIYUAN_SYNC_INTERVAL_SECONDS: ${SIYUAN_SYNC_INTERVAL_SECONDS:-60}
+      SIYUAN_SYNC_NOTEBOOKS: ${SIYUAN_SYNC_NOTEBOOKS:-}
+      SIYUAN_SYNC_EXCLUDE_NOTEBOOKS: ${SIYUAN_SYNC_EXCLUDE_NOTEBOOKS:-SiYuan User Guide}
+      SIYUAN_PUBLIC_NOTEBOOKS: ${SIYUAN_PUBLIC_NOTEBOOKS:-}
+    ports:
+      - "127.0.0.1:${KB_PORT:-8796}:8796"
+    volumes:
+      - ${MYBLOG_DATA_DIR:-./.private-data}/content:/app/content
+      - ${MYBLOG_DATA_DIR:-./.private-data}/runtime:/app/runtime
+      - ${MYBLOG_DATA_DIR:-./.private-data}/siyuan/workspace:/app/siyuan/workspace:ro

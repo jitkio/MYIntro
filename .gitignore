@@ -1,0 +1,37 @@
+# Local configuration and credentials
+.env*
+!.env.example
+.npmrc
+.yarnrc*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+credentials*
+secrets*
+# Content and runtime data
+content/
+articles/
+media/
+runtime/
+siyuan/
+.private-data/
+backups/
+previews/
+*.log
+*.db
+*.sqlite*
+*.tar*
+*.zip
+# Dependencies and build output
+node_modules/
+dist/
+.cache/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

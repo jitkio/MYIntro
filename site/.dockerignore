@@ -1,0 +1,14 @@
+node_modules
+dist
+npm-debug.log
+*.log
+.env*
+*.pem
+*.key
+*.p12
+*.pfx
+.npmrc
+content
+runtime
+siyuan
+.private-data
