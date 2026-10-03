@@ -8,6 +8,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { articleIdentity, buildNavigation, hasArticleBody } from "./navigation.js";
 import { findFolder, folderPath } from "../shared/navigation.js";
 import { routeFromUrl } from "../shared/routes.js";
+import { referencedMediaUrls } from "../shared/media.js";
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
 const siteDir = path.resolve(serverDir, "..");
@@ -275,11 +276,7 @@ function extractHeadings(content) {
 
 function extractMediaFiles(content) {
   const files = new Set();
-  const markdown = String(content || "").replace(/```[\s\S]*?```/g, "");
-  const matches = markdown.matchAll(/!?\[[^\]]*]\((\/media\/[^\s)]+)/g);
-
-  for (const match of matches) {
-    const rawUrl = match[1];
+  for (const rawUrl of referencedMediaUrls(content)) {
     const pathname = rawUrl.split(/[?#]/)[0];
     let decoded = "";
     try {
@@ -1127,7 +1124,7 @@ async function createApp() {
   app.disable("x-powered-by");
   app.use((_req, res, next) => {
     res.set({
-      "Content-Security-Policy": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:",
+      "Content-Security-Policy": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: https:; media-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:",
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "SAMEORIGIN",

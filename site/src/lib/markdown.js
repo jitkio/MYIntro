@@ -8,17 +8,18 @@ import javascript from "highlight.js/lib/languages/javascript";
 import json from "highlight.js/lib/languages/json";
 import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
+import { installMediaRules } from "../../shared/media.js";
 
 for (const [names, language] of [["bash sh", bash], ["c", c], ["cpp", cpp], ["css", css], ["js javascript", javascript], ["json", json], ["ts typescript", typescript], ["html xml", xml]]) {
   for (const name of names.split(" ")) hljs.registerLanguage(name, language);
 }
-const markdown = new MarkdownIt({
+const markdown = installMediaRules(new MarkdownIt({
   html: false, linkify: true, typographer: true,
   highlight(code, language) {
     const value = language && hljs.getLanguage(language) ? hljs.highlight(code, { language }).value : markdown.utils.escapeHtml(code);
     return `<pre class="hljs"><code>${value}</code></pre>`;
   }
-});
+}));
 
 function headingId(text, used) {
   const base = String(text).normalize("NFKD").toLowerCase().replace(/[\u0300-\u036f]/g, "").replace(/[^\p{L}\p{N}\s-]/gu, " ").trim().replace(/\s+/g, "-").replace(/-+/g, "-") || "section";

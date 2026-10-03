@@ -40,6 +40,12 @@ main:focus { outline: none; }
 .markdown-body figure { margin: 2rem 0; }
 .markdown-body figure img { width: 100%; height: auto; display: block; border-radius: .2rem; }
 .markdown-body figcaption { text-align: center; font-size: .82rem; color: var(--sec-text-color); margin-top: .75rem; }
+.markdown-body .article-media { display: block; width: 100%; max-width: 100%; margin: 1.5rem 0; }
+.markdown-body .article-media video, .markdown-body .article-media audio { display: block; width: 100%; max-width: 100%; border-radius: .3rem; }
+.markdown-body .article-media video { max-height: 70vh; background: #111; }
+.markdown-body .article-media-caption { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .4rem 1rem; margin-top: .6rem; font-size: .82rem; color: var(--sec-text-color); }
+.markdown-body .article-media-caption > span { min-width: 0; overflow-wrap: anywhere; }
+.markdown-body .article-media-caption a { flex: none; }
 .article-bottom { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--line-color); }
 .post-prevnext { gap: 1.5rem; margin-top: 1.6rem; }
 .post-prevnext a { flex: 1; display: flex; gap: .5rem; align-items: center; min-width: 0; }

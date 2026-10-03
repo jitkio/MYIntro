@@ -50,16 +50,19 @@ before(async () => {
   await mkdir(publicDir, { recursive: true });
   await writeFile(
     path.join(articles, "public.md"),
-    "---\ntitle: Public article\ncategory: Docs\ntags: [Guide]\npublished: true\nupdated: 2026-07-27\n---\n\n# Public article\n\n![cover](/media/cover.txt)\n",
+    '---\ntitle: Public article\ncategory: Docs\ntags: [Guide]\npublished: true\nupdated: 2026-07-27\n---\n\n# Public article\n\n![cover](/media/cover.txt)\n\n<video src="/media/movie.mp4" poster="/media/poster.png"></video>\n\n<audio><source src="/media/voice.mp3" type="audio/mpeg"></audio>\n\n```md\n[example](/media/code-only.mp4)\n```\n',
     "utf8"
   );
   await writeFile(
     path.join(articles, "draft.md"),
-    "---\ntitle: Draft article\npublished: false\n---\n\n# Draft article\n",
+    '---\ntitle: Draft article\npublished: false\n---\n\n# Draft article\n\n<video src="/media/private.mp4"></video>\n',
     "utf8"
   );
   await writeFile(path.join(media, "cover.txt"), "published media", "utf8");
   await writeFile(path.join(media, "hidden.txt"), "private media", "utf8");
+  for (const name of ["movie.mp4", "voice.mp3", "poster.png", "private.mp4", "code-only.mp4"]) {
+    await writeFile(path.join(media, name), Buffer.from("0123456789abcdefghijklmnopqrstuvwxyz"));
+  }
 
   port = await reservePort();
   server = spawn(process.execPath, ["server/index.js"], {
@@ -70,12 +73,17 @@ before(async () => {
       KB_HOST: "127.0.0.1",
       KB_PORT: String(port),
       KB_PROJECT_ROOT: projectRoot,
+      KB_DATA_DIR: projectRoot,
+      KB_PUBLIC_ORIGIN: `http://localhost:${port}`,
       KB_CONTENT_DIR: path.join(projectRoot, "content"),
       KB_RUNTIME_DIR: path.join(projectRoot, "runtime"),
       KB_PUBLIC_DIR: publicDir,
       KB_SIYUAN_WORKSPACE_DIR: path.join(projectRoot, "siyuan", "workspace"),
       KB_ADMIN_TOKEN: "TEST_ONLY_ADMIN_NOT_A_SECRET",
-      SIYUAN_ACCESS_AUTH_CODE: ""
+      SIYUAN_ACCESS_AUTH_CODE: "",
+      SIYUAN_API_TOKEN: "",
+      SIYUAN_PUBLIC_URL: "",
+      SIYUAN_SYNC_INTERVAL_SECONDS: "0"
     },
     stdio: ["ignore", "ignore", "pipe"]
   });
@@ -86,8 +94,14 @@ before(async () => {
 });
 
 after(async () => {
-  server?.kill();
-  await rm(projectRoot, { recursive: true, force: true });
+  if (server && server.exitCode === null) {
+    const exited = new Promise((resolve) => server.once("exit", resolve));
+    server.kill();
+    await exited;
+  }
+  if (projectRoot && path.dirname(path.resolve(projectRoot)) === path.resolve(os.tmpdir()) && path.basename(projectRoot).startsWith("myblog-test-")) {
+    await rm(projectRoot, { recursive: true, force: true });
+  }
 });
 
 test("only published content and referenced media are public", async () => {
@@ -150,4 +164,23 @@ test("article routes and sitemap expose only published URLs", async () => {
   const sitemap = await fetch(`http://127.0.0.1:${port}/sitemap.xml`).then((response) => response.text());
   assert.match(sitemap, /articles\/public/);
   assert.doesNotMatch(sitemap, /articles\/draft/);
+});
+
+test("published HTML media and posters support playback requests while draft and code-only files stay private", async () => {
+  for (const name of ["movie.mp4", "voice.mp3", "poster.png"]) {
+    assert.equal((await fetch(`http://127.0.0.1:${port}/media/${name}`)).status, 200);
+  }
+  const seek = await fetch(`http://127.0.0.1:${port}/media/movie.mp4`, { headers: { Range: "bytes=10-19" } });
+  assert.equal(seek.status, 206);
+  assert.equal(seek.headers.get("content-type"), "video/mp4");
+  assert.equal(seek.headers.get("content-range"), "bytes 10-19/36");
+  assert.equal(await seek.text(), "abcdefghij");
+  const head = await fetch(`http://127.0.0.1:${port}/media/voice.mp3`, { method: "HEAD" });
+  assert.equal(head.headers.get("content-type"), "audio/mpeg");
+  assert.equal(head.headers.get("accept-ranges"), "bytes");
+  for (const name of ["private.mp4", "code-only.mp4"]) {
+    assert.equal((await fetch(`http://127.0.0.1:${port}/media/${name}`)).status, 404);
+  }
+  const page = await fetch(`http://127.0.0.1:${port}/articles/public`);
+  assert.match(page.headers.get("content-security-policy"), /media-src 'self' https:/);
 });

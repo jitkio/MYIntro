@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { parse as parseYaml } from "yaml";
 import { hasArticleBody } from "../server/navigation.js";
+import { renderArticle } from "../src/lib/markdown.js";
 
 const siteDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let root, server, mockSiyuan, port, articlesDir;
@@ -70,6 +71,11 @@ before(async () => {
   await writeArticle(oldLeafPath, { title: "正文", published: true, source: "siyuan", siyuanId: "test-article", navigation: "article" }, "# 正文\n\n这是正文。\n");
   await writeArticle("公开/专题/空白叶文档", { title: "空白叶文档", published: true }, "# 空白叶文档\n");
   await writeArticle("公开/旧草稿", { title: "旧草稿", published: false, source: "siyuan", siyuanId: "draft", navigation: "folder" }, "# 旧草稿\n");
+  const assets = path.join(root, "siyuan", "data", "assets");
+  await mkdir(assets, { recursive: true });
+  for (const name of ["演示.mp4", "voice.mp3", "poster.png"]) {
+    await writeFile(path.join(assets, name), Buffer.from("0123456789abcdefghijklmnopqrstuvwxyz"));
+  }
 
   const listener = net.createServer();
   await new Promise((resolve) => listener.listen(0, "127.0.0.1", resolve));
@@ -90,7 +96,8 @@ before(async () => {
         { id: "same-two", name: "同名文档", path: "/two.sy" }
       ] };
     } else if (req.url === "/api/export/exportMdContent") {
-      data = { content: `# 导出文档\n\nContent for ${body.id}.\n` };
+      const media = body.id === "same-one" ? '\n<video src="assets/%E6%BC%94%E7%A4%BA.mp4" poster="assets/poster.png" controls></video>\n\n<audio><source src="assets/voice.mp3" type="audio/mpeg"></audio>\n' : "";
+      data = { content: `# 导出文档\n\nContent for ${body.id}.\n${media}` };
     } else {
       res.writeHead(404).end();
       return;
@@ -172,4 +179,15 @@ test("SiYuan sync preserves publication and navigation settings by ID and retain
   const articleRaw = await readFile(path.join(articlesDir, "公开", "新名字.md"), "utf8");
   assert.equal(parseYaml(articleRaw.split("---")[1]).navigation, "article");
   assert.equal((await fetch(url(`/api/article?id=${encodeURIComponent(oldLeafPath)}`))).status, 200);
+});
+
+test("SiYuan exported video, audio and posters are copied, rewritten and made playable", async () => {
+  const data = await fetch(url("/api/article?id=siyuan/same-one")).then((response) => response.json());
+  assert.doesNotMatch(data.content, /["']assets\//);
+  const rendered = renderArticle(data.content, data.article.title);
+  assert.match(rendered.html, /<video controls/);
+  assert.match(rendered.html, /<audio controls/);
+  for (const name of ["演示.mp4", "voice.mp3", "poster.png"]) {
+    assert.equal((await fetch(url(`/media/siyuan/${encodeURIComponent(name)}`))).status, 200);
+  }
 });
