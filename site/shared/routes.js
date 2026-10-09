@@ -2,6 +2,12 @@ import { decodePath } from "./navigation.js";
 
 export function routeFromUrl(value) {
   const url = value instanceof URL ? value : new URL(value, "http://localhost");
+  const shareMatch = /^\/share\/(.+)$/.exec(url.pathname);
+  if (shareMatch) {
+    const id = decodePath(shareMatch[1]);
+    const token = url.searchParams.get("token") || "";
+    return { page: "share", articleId: id, token, isShare: true, invalid: id === null };
+  }
   const articleMatch = /^\/articles\/(.+)$/.exec(url.pathname);
   const folderMatch = /^\/directory\/(.+)$/.exec(url.pathname);
   const legacyArticle = url.searchParams.get("article");

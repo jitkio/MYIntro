@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Archive, Folder, Menu, Moon, Search, Sun, Wrench } from "lucide-react";
 import SiteLink from "./SiteLink.jsx";
 
-export default function SiteHeader({ title, subtitle, page, theme, onTheme, onSearch }) {
+export default function SiteHeader({ title, subtitle, page, theme, onTheme, onSearch, isShare }) {
   const [scrolled, setScrolled] = useState(window.scrollY > 30);
   const [expanded, setExpanded] = useState(false);
   useEffect(() => {
@@ -14,11 +14,21 @@ export default function SiteHeader({ title, subtitle, page, theme, onTheme, onSe
   return <header>
     <nav id="navbar" className={`navbar fixed-top navbar-expand-lg scrolling-navbar ${scrolled || expanded ? "top-nav-collapse" : ""}`} aria-label="主导航">
       <div className="container">
-        <SiteLink className="navbar-brand" to="/"><strong>myBlog</strong></SiteLink>
-        <button type="button" className="nav-icon mobile-menu" aria-label="展开导航" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}><Menu size={19} /></button>
-        <div className={`nav-links ${expanded ? "is-open" : ""}`}>
-          {[["directory", "目录", Folder], ["articles", "文章", Archive], ["tools", "工具", Wrench]].map(([value, label, Icon]) => <SiteLink key={value} className="nav-link" to={`/${value}`} aria-current={page === value ? "page" : undefined}><Icon size={14} /><span>{label}</span></SiteLink>)}
-          <button type="button" className="nav-icon" aria-label="搜索文章" onClick={onSearch}><Search size={15} /></button>
+        {isShare ? (
+          <span className="navbar-brand" style={{ cursor: "default" }}><strong>myBlog</strong></span>
+        ) : (
+          <SiteLink className="navbar-brand" to="/"><strong>myBlog</strong></SiteLink>
+        )}
+        {!isShare && (
+          <button type="button" className="nav-icon mobile-menu" aria-label="展开导航" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}><Menu size={19} /></button>
+        )}
+        <div className={`nav-links ${expanded ? "is-open" : ""}`} style={isShare ? { marginLeft: "auto", display: "flex" } : undefined}>
+          {!isShare && [["directory", "目录", Folder], ["articles", "文章", Archive], ["tools", "工具", Wrench]].map(([value, label, Icon]) => (
+            <SiteLink key={value} className="nav-link" to={`/${value}`} aria-current={page === value ? "page" : undefined}><Icon size={14} /><span>{label}</span></SiteLink>
+          ))}
+          {!isShare && (
+            <button type="button" className="nav-icon" aria-label="搜索文章" onClick={onSearch}><Search size={15} /></button>
+          )}
           <button type="button" className="nav-icon" aria-label={`切换${theme === "dark" ? "浅" : "深"}色模式`} onClick={onTheme}>{theme === "dark" ? <Moon size={16} /> : <Sun size={16} />}</button>
         </div>
       </div>
